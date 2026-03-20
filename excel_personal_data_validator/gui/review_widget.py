@@ -167,10 +167,12 @@ class ReviewWidget(QWidget):
         self._value_label.setText(f"'{entry.value}'")
         self._rows_label.setText(f"Строки: {', '.join(str(r) for r in entry.row_numbers)}")
 
-        # Очищаем старые radio-кнопки похожих
+        # Очищаем старые radio-кнопки похожих (не трогаем постоянные)
+        permanent = {self._custom_radio, self._add_db_radio, self._skip_radio}
         for btn in list(self._radio_group.buttons()):
-            self._radio_group.removeButton(btn)
-            btn.deleteLater()
+            if btn not in permanent:
+                self._radio_group.removeButton(btn)
+                btn.deleteLater()
 
         while self._radios_layout.count():
             item = self._radios_layout.takeAt(0)
