@@ -1,7 +1,7 @@
 from unittest import mock
 
 from excel_personal_data_validator.db import NameCategory, NameDatabase
-from excel_personal_data_validator.ui import ReviewSummary, UserAction, run_interactive_review
+from excel_personal_data_validator.ui import EntryDecision, ReviewSummary, UserAction, run_interactive_review
 from excel_personal_data_validator.validator import UnknownEntry
 
 
@@ -48,11 +48,12 @@ def test_replace_with_custom_value(tmp_db: NameDatabase, known_names):
 
 
 def test_summary_counts():
+    entry = UnknownEntry(category=NameCategory.LAST_NAME, value="Тест", row_numbers=(1,))
     decisions = [
-        mock.Mock(action=UserAction.ADD_TO_DB),
-        mock.Mock(action=UserAction.REPLACE),
-        mock.Mock(action=UserAction.REPLACE),
-        mock.Mock(action=UserAction.SKIP),
+        EntryDecision(entry=entry, action=UserAction.ADD_TO_DB),
+        EntryDecision(entry=entry, action=UserAction.REPLACE, replacement="Тестов"),
+        EntryDecision(entry=entry, action=UserAction.REPLACE, replacement="Тестова"),
+        EntryDecision(entry=entry, action=UserAction.SKIP),
     ]
     summary = ReviewSummary(decisions=decisions)
     assert summary.added_count == 1
