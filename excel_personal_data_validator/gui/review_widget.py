@@ -167,37 +167,8 @@ class ReviewWidget(QWidget):
         self._value_label.setText(f"'{entry.value}'")
         self._rows_label.setText(f"Строки: {', '.join(str(r) for r in entry.row_numbers)}")
 
-        # Очищаем старые radio-кнопки похожих (не трогаем постоянные)
-        permanent = {self._custom_radio, self._add_db_radio, self._skip_radio}
-        for btn in list(self._radio_group.buttons()):
-            if btn not in permanent:
-                self._radio_group.removeButton(btn)
-                btn.deleteLater()
-
-        while self._radios_layout.count():
-            item = self._radios_layout.takeAt(0)
-            if item is not None:
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-
-        # Находим похожие
-        similar = find_similar(entry.value, self._known_names.get(entry.category, set()))
+        similar = self._rebuild_similar_radios(entry)
         self._current_similar = similar
-
-        if similar:
-            self._similar_label.show()
-            for name in similar:
-                radio = QRadioButton(name)
-                self._radios_layout.addWidget(radio)
-                self._radio_group.addButton(radio)
-        else:
-            self._similar_label.hide()
-
-        # Добавляем спец. кнопки в группу
-        self._radio_group.addButton(self._custom_radio)
-        self._radio_group.addButton(self._add_db_radio)
-        self._radio_group.addButton(self._skip_radio)
 
         # Восстанавливаем предыдущее решение если есть
         prev = self._decisions[index]
@@ -218,6 +189,38 @@ class ReviewWidget(QWidget):
         self._next_btn.setText("Завершить" if is_last else "Применить и далее \u25b6")
 
         self._update_progress()
+
+    def _rebuild_similar_radios(self, entry: UnknownEntry) -> list[str]:
+        """Удаляет старые radio-кнопки похожих и создаёт новые."""
+        permanent = {self._custom_radio, self._add_db_radio, self._skip_radio}
+        for btn in list(self._radio_group.buttons()):
+            if btn not in permanent:
+                self._radio_group.removeButton(btn)
+                btn.deleteLater()
+
+        while self._radios_layout.count():
+            item = self._radios_layout.takeAt(0)
+            if item is not None:
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+
+        similar = find_similar(entry.value, self._known_names.get(entry.category, set()))
+
+        if similar:
+            self._similar_label.show()
+            for name in similar:
+                radio = QRadioButton(name)
+                self._radios_layout.addWidget(radio)
+                self._radio_group.addButton(radio)
+        else:
+            self._similar_label.hide()
+
+        self._radio_group.addButton(self._custom_radio)
+        self._radio_group.addButton(self._add_db_radio)
+        self._radio_group.addButton(self._skip_radio)
+
+        return similar
 
     def _restore_decision(self, decision: EntryDecision, similar: list[str]) -> None:
         if decision.action == UserAction.REPLACE and decision.replacement in similar:
