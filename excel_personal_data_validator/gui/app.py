@@ -2,6 +2,7 @@ from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QStatusBar, QTabWidget
 
 from excel_personal_data_validator.db import NameCategory, NameDatabase
+from excel_personal_data_validator.gui.database_tab import DatabaseTab
 from excel_personal_data_validator.gui.import_tab import ImportTab
 from excel_personal_data_validator.gui.validate_tab import ValidateTab
 from excel_personal_data_validator.paths import get_db_path
@@ -37,6 +38,11 @@ class MainWindow(QMainWindow):
 
         self._import_tab = ImportTab(db=self._db, known_names=self._known_names, on_import_done=self._update_status_bar)
         tabs.addTab(self._import_tab, "Импорт в базу")
+
+        self._database_tab = DatabaseTab(
+            db=self._db, known_names=self._known_names, on_data_changed=self._update_status_bar
+        )
+        tabs.addTab(self._database_tab, "База данных")
 
         self._status_bar = QStatusBar()
         self.setStatusBar(self._status_bar)

@@ -59,6 +59,29 @@ class NameDatabase:
         )
         self._conn.commit()
 
+    def list_names(self, category: NameCategory, search: str = "") -> list[tuple[int, str]]:
+        """Возвращает список (id, value) для категории, опционально фильтруя по подстроке."""
+        if search:
+            cursor = self._conn.execute(
+                f"SELECT id, value FROM {category} WHERE value LIKE ? ORDER BY value COLLATE NOCASE",  # noqa: S608
+                (f"%{search}%",),
+            )
+        else:
+            cursor = self._conn.execute(
+                f"SELECT id, value FROM {category} ORDER BY value COLLATE NOCASE"  # noqa: S608
+            )
+        return cursor.fetchall()
+
+    def update_name(self, category: NameCategory, row_id: int, new_value: str) -> None:
+        """Обновляет значение записи по id."""
+        self._conn.execute(f"UPDATE {category} SET value = ? WHERE id = ?", (new_value, row_id))  # noqa: S608
+        self._conn.commit()
+
+    def delete_name(self, category: NameCategory, row_id: int) -> None:
+        """Удаляет запись по id."""
+        self._conn.execute(f"DELETE FROM {category} WHERE id = ?", (row_id,))  # noqa: S608
+        self._conn.commit()
+
     def close(self) -> None:
         """Закрывает соединение с БД."""
         self._conn.close()
