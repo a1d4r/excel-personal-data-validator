@@ -1,0 +1,10 @@
+# This file contains values from Cookiecutter
+
+default_context:
+  project_name: "excel-personal-data-validator"
+  package_name: "excel_personal_data_validator"
+  git_platform: "github"
+  username: "a1d4r"
+  git_repo_url: "https://github.com/a1d4r/excel-personal-data-validator"
+  python_version: "3.12"
+  line_length: "120"
