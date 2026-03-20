@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.9.2",
+    "openpyxl>=3.1.0",
 ]
 
 [dependency-groups]
@@ -105,6 +106,7 @@ ignore = [
   "E501", # pycodestyle - line too long (handled by formatter)
   "COM812", # forced by ruff formatter
   "ISC001", # forced by ruff formatter
+  "T201", # allow print (console application)
   "TRY003", # long message for exceptions
   "EM101", # allow string literals for exceptions
   "EM102", # allow f-string literals for exceptions
