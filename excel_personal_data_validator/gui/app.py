@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
         self._validate_tab = ValidateTab(db=self._db, known_names=self._known_names, db_path=self._db_path)
         tabs.addTab(self._validate_tab, "Проверка файла")
 
-        self._import_tab = ImportTab(db=self._db, known_names=self._known_names, on_import_done=self._update_status_bar)
+        self._import_tab = ImportTab(db=self._db, known_names=self._known_names, on_import_done=self._on_import_done)
         tabs.addTab(self._import_tab, "Импорт в базу")
 
         self._database_tab = DatabaseTab(
@@ -46,6 +46,11 @@ class MainWindow(QMainWindow):
 
         self._status_bar = QStatusBar()
         self.setStatusBar(self._status_bar)
+
+    def _on_import_done(self) -> None:
+        """Обновляет статусбар и перезагружает вкладку «База данных» после импорта."""
+        self._update_status_bar()
+        self._database_tab.refresh()
 
     def _update_status_bar(self) -> None:
         total = sum(len(v) for v in self._known_names.values())
