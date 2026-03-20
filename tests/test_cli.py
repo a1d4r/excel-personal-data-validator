@@ -123,8 +123,7 @@ def test_import_db_first_names(tmp_path: Path, capsys):
     names_file.write_text("Иван\nПётр\nМария\n", encoding="utf-8")
 
     with mock.patch(
-        "sys.argv",
-        ["validator", "import-db", "--first-names", str(names_file), "--db-path", str(db_path)],
+        "sys.argv", ["validator", "import-db", "--first-names", str(names_file), "--db-path", str(db_path)]
     ):
         main()
 
@@ -154,10 +153,14 @@ def test_import_db_all_categories(tmp_path: Path, capsys):
         [
             "validator",
             "import-db",
-            "--last-names", str(last),
-            "--first-names", str(first),
-            "--patronymics", str(patr),
-            "--db-path", str(db_path),
+            "--last-names",
+            str(last),
+            "--first-names",
+            str(first),
+            "--patronymics",
+            str(patr),
+            "--db-path",
+            str(db_path),
         ],
     ):
         main()
@@ -173,10 +176,7 @@ def test_import_db_no_files(tmp_path: Path, capsys):
     """Тест: вызов import-db без файлов."""
     db_path = tmp_path / "names.db"
 
-    with (
-        mock.patch("sys.argv", ["validator", "import-db", "--db-path", str(db_path)]),
-        pytest.raises(SystemExit),
-    ):
+    with mock.patch("sys.argv", ["validator", "import-db", "--db-path", str(db_path)]), pytest.raises(SystemExit):
         main()
 
     captured = capsys.readouterr()

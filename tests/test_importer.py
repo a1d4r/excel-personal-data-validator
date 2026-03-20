@@ -39,10 +39,7 @@ def test_import_names_to_db(tmp_path: Path, tmp_db: NameDatabase):
     last_names = tmp_path / "last.txt"
     last_names.write_text("Иванов\nПетров\nСидоров\n", encoding="utf-8")
 
-    files = {
-        NameCategory.FIRST_NAME: first_names,
-        NameCategory.LAST_NAME: last_names,
-    }
+    files = {NameCategory.FIRST_NAME: first_names, NameCategory.LAST_NAME: last_names}
     counts = import_names_to_db(tmp_db, files)
 
     assert counts[NameCategory.FIRST_NAME] == 2

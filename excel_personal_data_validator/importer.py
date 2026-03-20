@@ -9,10 +9,7 @@ def read_names_file(path: Path) -> list[str]:
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 
-def import_names_to_db(
-    db: NameDatabase,
-    files: dict[NameCategory, Path],
-) -> dict[NameCategory, int]:
+def import_names_to_db(db: NameDatabase, files: dict[NameCategory, Path]) -> dict[NameCategory, int]:
     """Импортирует имена из файлов в БД. Возвращает количество загруженных значений по категориям."""
     result: dict[NameCategory, int] = {}
     for category, path in files.items():

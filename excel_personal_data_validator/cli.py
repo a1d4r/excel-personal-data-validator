@@ -26,15 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     # --- import-db ---
     import_parser = subparsers.add_parser("import-db", help="Импорт данных в БД из текстовых файлов")
-    import_parser.add_argument(
-        "--last-names", type=Path, default=None, help="Файл с фамилиями (по одной на строке)"
-    )
-    import_parser.add_argument(
-        "--first-names", type=Path, default=None, help="Файл с именами (по одному на строке)"
-    )
-    import_parser.add_argument(
-        "--patronymics", type=Path, default=None, help="Файл с отчествами (по одному на строке)"
-    )
+    import_parser.add_argument("--last-names", type=Path, default=None, help="Файл с фамилиями (по одной на строке)")
+    import_parser.add_argument("--first-names", type=Path, default=None, help="Файл с именами (по одному на строке)")
+    import_parser.add_argument("--patronymics", type=Path, default=None, help="Файл с отчествами (по одному на строке)")
     import_parser.add_argument(
         "--db-path", type=Path, default=None, help="Путь к БД (по умолчанию: names.db рядом с программой)"
     )
