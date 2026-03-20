@@ -89,6 +89,13 @@ lint: check-dependencies check-codestyle static-lint
 update:
 	uv lock --upgrade
 
+#* Build
+.PHONY: build
+build:
+	uv pip install pyinstaller
+	uv run pyinstaller --onefile --windowed --name validator \
+		--collect-data PySide6 excel_personal_data_validator/__main__.py
+
 #* Cleaning
 .PHONY: pycache-remove
 pycache-remove:
