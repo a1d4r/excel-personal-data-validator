@@ -80,6 +80,7 @@ make build
 ```bash
 uv pip install pyinstaller
 uv run pyinstaller --onefile --windowed --name validator --collect-data PySide6 excel_personal_data_validator/__main__.py
+# Для уменьшения размера используйте make build — он исключает неиспользуемые Qt-модули
 ```
 
 Готовый файл появится в папке `dist/validator.exe`. База `names.db` создаётся рядом с `.exe` при первом запуске.
