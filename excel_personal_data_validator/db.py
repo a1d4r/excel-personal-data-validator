@@ -29,6 +29,7 @@ class NameDatabase:
         self._db_path = db_path
         self._conn = sqlite3.connect(str(db_path))
         self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.create_function("UNICODE_LOWER", 1, lambda s: s.lower() if s else s)
 
     def initialize(self) -> None:
         """Создаёт таблицы, если они не существуют."""
@@ -63,8 +64,8 @@ class NameDatabase:
         """Возвращает список (id, value) для категории, опционально фильтруя по подстроке."""
         if search:
             cursor = self._conn.execute(
-                f"SELECT id, value FROM {category} WHERE value LIKE ? ORDER BY value COLLATE NOCASE",  # noqa: S608
-                (f"%{search}%",),
+                f"SELECT id, value FROM {category} WHERE UNICODE_LOWER(value) LIKE ? ORDER BY value COLLATE NOCASE",  # noqa: S608, E501
+                (f"%{search.lower()}%",),
             )
         else:
             cursor = self._conn.execute(
