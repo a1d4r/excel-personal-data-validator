@@ -64,7 +64,7 @@ class NameDatabase:
         """Возвращает список (id, value) для категории, опционально фильтруя по подстроке."""
         if search:
             cursor = self._conn.execute(
-                f"SELECT id, value FROM {category} WHERE UNICODE_LOWER(value) LIKE ? ORDER BY value COLLATE NOCASE",  # noqa: S608, E501
+                f"SELECT id, value FROM {category} WHERE UNICODE_LOWER(value) LIKE ? ORDER BY value COLLATE NOCASE",  # noqa: S608
                 (f"%{search.lower()}%",),
             )
         else:
