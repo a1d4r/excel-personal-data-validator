@@ -19,6 +19,7 @@ dev = [
     "ruff>=0.12.11,<0.13",
     "safety>=3.4.0,<4",
     "deptry>=0.23.0,<0.24",
+    "pytest-qt>=4.4.0,<5",
 ]
 
 [tool.uv]
@@ -59,6 +60,7 @@ warn_untyped_fields = true
 filterwarnings = ["error", "ignore::DeprecationWarning", "ignore::ImportWarning"]
 testpaths = ["excel_personal_data_validator", "tests"]
 xfail_strict = true
+qt_api = "pyside6"
 
 # Extra options:
 addopts = [
@@ -73,7 +75,6 @@ addopts = [
   "--typeguard-packages=excel_personal_data_validator",
   "--cov",
   "--junitxml=reports/junit.xml",
-  "--ignore=excel_personal_data_validator/gui",
 ]
 
 [tool.coverage.run]
@@ -133,6 +134,8 @@ allowed-confusables = [
 "tests/**/*.py" = [
   "S101", # Use of assert detected (assert allowed in tests)
   "PLR2004", # Magic value used in comparison
+  "SLF001", # Private member access (needed for GUI widget testing)
+  "ARG005", # Unused lambda arguments (monkeypatch stubs)
 ]
 "excel_personal_data_validator/gui/**/*.py" = [
   "N802", # Qt method overrides use camelCase
