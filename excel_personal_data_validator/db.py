@@ -29,6 +29,7 @@ class NameDatabase:
         self._db_path = db_path
         self._conn = sqlite3.connect(str(db_path))
         self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.create_function("UNICODE_LOWER", 1, lambda s: s.lower() if s else s)
 
     def initialize(self) -> None:
         """Создаёт таблицы, если они не существуют."""
@@ -57,6 +58,29 @@ class NameDatabase:
             f"INSERT OR IGNORE INTO {category} (value) VALUES (?)",  # noqa: S608
             [(v,) for v in values],
         )
+        self._conn.commit()
+
+    def list_names(self, category: NameCategory, search: str = "") -> list[tuple[int, str]]:
+        """Возвращает список (id, value) для категории, опционально фильтруя по подстроке."""
+        if search:
+            cursor = self._conn.execute(
+                f"SELECT id, value FROM {category} WHERE UNICODE_LOWER(value) LIKE ? ORDER BY value COLLATE NOCASE",  # noqa: S608
+                (f"%{search.lower()}%",),
+            )
+        else:
+            cursor = self._conn.execute(
+                f"SELECT id, value FROM {category} ORDER BY value COLLATE NOCASE"  # noqa: S608
+            )
+        return cursor.fetchall()
+
+    def update_name(self, category: NameCategory, row_id: int, new_value: str) -> None:
+        """Обновляет значение записи по id."""
+        self._conn.execute(f"UPDATE {category} SET value = ? WHERE id = ?", (new_value, row_id))  # noqa: S608
+        self._conn.commit()
+
+    def delete_name(self, category: NameCategory, row_id: int) -> None:
+        """Удаляет запись по id."""
+        self._conn.execute(f"DELETE FROM {category} WHERE id = ?", (row_id,))  # noqa: S608
         self._conn.commit()
 
     def close(self) -> None:
