@@ -1,176 +1,132 @@
-# excel personal data validator
+# Excel Personal Data Validator
 
-## Installation
+Консольная утилита для проверки ФИО (фамилия, имя, отчество) в Excel-файлах по базе данных известных имён.
 
-1. Clone `git` repo:
+Решает проблему опечаток при массовом ручном вводе данных: программа находит значения, которых нет в базе, предлагает похожие варианты для исправления и позволяет добавлять новые имена.
+
+## Возможности
+
+- Чтение Excel-файлов с указанием столбцов для фамилии, имени и отчества
+- Проверка каждого значения по SQLite базе данных (регистронезависимо)
+- Нечёткий поиск похожих значений для исправления опечаток
+- Интерактивный режим: замена на похожее, ввод своего значения, добавление в базу или пропуск
+- Сохранение исправленного файла в копию (исходник не изменяется)
+- Работает офлайн, упаковывается в один .exe через PyInstaller
+
+## Установка
+
+### Для пользователей
+
+Скачайте `validator.exe` из [Releases](https://github.com/a1d4r/excel-personal-data-validator/releases) и поместите в удобную папку. База данных `names.db` создастся автоматически при первом запуске.
+
+### Для разработчиков
 
 ```bash
 git clone https://github.com/a1d4r/excel-personal-data-validator.git
 cd excel-personal-data-validator
-```
-
-2. If you don't have `uv` installed run:
-
-```bash
-make uv-download
-```
-
-3. Initialize uv and install `pre-commit` hooks:
-
-```bash
 make install
 make pre-commit-install
 ```
 
-4. Run formatters, linters, and tests. Make sure there is no errors.
+## Использование
 
 ```bash
-make format lint test
+python -m excel_personal_data_validator data.xlsx
 ```
 
-### Makefile usage
+### Аргументы командной строки
 
-[`Makefile`](%7B%7B%20cookiecutter.project_name.lower().replace('%20',%20'-')%20%7D%7D/Makefile)
-contains a lot of functions
-for faster development.
+| Аргумент | По умолчанию | Описание |
+|----------|-------------|----------|
+| `excel_file` | _(обязательный)_ | Путь к .xlsx файлу |
+| `--db-path` | `names.db` | Путь к файлу базы данных |
+| `--last-name-col` | `A` | Столбец с фамилиями |
+| `--first-name-col` | `B` | Столбец с именами |
+| `--patronymic-col` | `C` | Столбец с отчествами |
+| `--sheet` | активный лист | Имя листа Excel |
+| `--start-row` | `2` | Первая строка с данными (1 = заголовок) |
 
-<details>
-<summary>1. Download uv</summary>
-<p>
-
-To download and install uv run:
+### Пример
 
 ```bash
-make uv-install
+python -m excel_personal_data_validator data.xlsx --last-name-col B --first-name-col C --patronymic-col D --start-row 3
 ```
 
-</p>
-</details>
+### Пример интерактивного сеанса
 
-<details>
-<summary>2. Install all dependencies and pre-commit hooks</summary>
-<p>
+```
+Загрузка базы данных...
+В базе: 1250 значений
+Чтение файла: data.xlsx
+Прочитано строк: 150
 
-Install requirements:
+========================================
+Найдено неизвестных значений: 3
+========================================
+
+[1/3] Фамилия 'Ивано' (строки: 5, 12, 47)
+Похожие в базе:
+  [1] Иванов
+  [2] Иванова
+  [3] Ввести своё значение
+  [4] Добавить 'Ивано' в базу
+  [5] Пропустить
+Выбор: 1
+✓ Заменено на 'Иванов' в строках: 5, 12, 47
+
+[2/3] Имя 'Алексй' (строки: 23)
+Похожие в базе:
+  [1] Алексей
+  [2] Ввести своё значение
+  [3] Добавить 'Алексй' в базу
+  [4] Пропустить
+Выбор: 1
+✓ Заменено на 'Алексей' в строках: 23
+
+[3/3] Фамилия 'Ахмедзянов' (строки: 89)
+  [1] Ввести своё значение
+  [2] Добавить 'Ахмедзянов' в базу
+  [3] Пропустить
+Выбор: 2
+✓ 'Ахмедзянов' добавлено в базу
+
+========================================
+Итого:
+  Исправлено: 2
+  Добавлено в базу: 1
+  Результат сохранён: data_checked.xlsx
+========================================
+```
+
+## Как это работает
+
+1. Программа загружает все известные имена из SQLite базы в оперативную память для мгновенного поиска
+2. Читает Excel-файл и проверяет каждое значение (фамилия, имя, отчество — отдельно)
+3. Неизвестные значения группируются и показываются пользователю с вариантами похожих имён
+4. Исправления записываются в копию файла (`data.xlsx` → `data_checked.xlsx`)
+5. Новые имена сохраняются в базу для будущих проверок
+
+**База данных** содержит три таблицы: фамилии, имена и отчества. Файл `names.db` создаётся рядом с программой при первом запуске и пополняется в процессе работы.
+
+### Сборка .exe
 
 ```bash
-make install
+pip install pyinstaller
+pyinstaller --onefile --name validator excel_personal_data_validator/__main__.py
 ```
 
-Pre-commit hooks coulb be installed after `git init` via
+Готовый файл появится в папке `dist/`. База `names.db` хранится рядом с `.exe` и не включается внутрь.
+
+## Разработка
 
 ```bash
-make pre-commit-install
+make install              # установка зависимостей
+make format               # форматирование кода (ruff)
+make lint                 # линтеры + типы (ruff, mypy, deptry)
+make test                 # тесты с покрытием (pytest)
+make format lint test     # всё вместе
 ```
-
-</p>
-</details>
-
-<details>
-<summary>3. Codestyle</summary>
-<p>
-
-Automatic formatting uses `ruff` formatter
-
-```bash
-make codestyle
-
-# or use synonym
-make format
-```
-
-Codestyle checks only, without rewriting files:
-
-```bash
-make check-codestyle
-```
-
-Update all libraries to the latest version using one command
-
-```bash
-make update
-```
-
-</p>
-</details>
-
-<details>
-<summary>4. Code security</summary>
-<p>
-
-This command identifies security issues with `Safety`
-
-```bash
-make check-safety
-```
-
-</p>
-</details>
-
-<details>
-<summary>5. Type checks</summary>
-<p>
-
-Run `mypy` static type checker
-
-```bash
-make mypy
-```
-
-</p>
-</details>
-
-<details>
-<summary>6. Tests with coverage</summary>
-<p>
-
-Run `pytest`
-
-```bash
-make test
-```
-
-</p>
-</details>
-
-<details>
-<summary>7. All linters</summary>
-<p>
-
-Of course there is a command to ~~rule~~ run all linters in one:
-
-```bash
-make lint
-```
-
-</p>
-</details>
-
-<details>
-<summary>8. Docker</summary>
-<p>
-
-Run with docker compose
-
-```bash
-make docker-up
-```
-
-</p>
-</details>
-
-<details>
-<summary>9. Cleanup</summary>
-<p>
-Delete cache and build files:
-
-```bash
-make cleanup
-```
-
-</p>
-</details>
 
 ## Credits
 
-This project was generated with [`python-package-template`](https://github.com/a1d4r/python-package-template)
+Проект создан на основе [`python-package-template`](https://github.com/a1d4r/python-package-template).
