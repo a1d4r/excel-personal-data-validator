@@ -27,7 +27,7 @@ def test_main_all_valid(tmp_path: Path, capsys):
         db.add_name(NameCategory.FIRST_NAME, "Иван")
         db.add_name(NameCategory.PATRONYMIC, "Петрович")
 
-    with mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path)]):
+    with mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path), "--start-row", "2"]):
         main()
 
     captured = capsys.readouterr()
@@ -52,7 +52,7 @@ def test_main_with_unknowns_skip(tmp_path: Path, capsys):
 
     # Пропускаем все 3 неизвестных (для каждого: [1] Ввести, [2] Добавить, [3] Пропустить → 3)
     with (
-        mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path)]),
+        mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path), "--start-row", "2"]),
         mock.patch("builtins.input", return_value="3"),
     ):
         main()
@@ -79,7 +79,7 @@ def test_main_with_corrections(tmp_path: Path, capsys):
 
     # Добавляем все 3 в базу (для каждого: [1] Ввести, [2] Добавить, [3] Пропустить → 2)
     with (
-        mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path)]),
+        mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path), "--start-row", "2"]),
         mock.patch("builtins.input", return_value="2"),
     ):
         main()
@@ -107,7 +107,7 @@ def test_main_empty_file(tmp_path: Path, capsys):
     with NameDatabase(db_path) as db:
         db.initialize()
 
-    with mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path)]):
+    with mock.patch("sys.argv", ["validator", str(xlsx), "--db-path", str(db_path), "--start-row", "2"]):
         main()
 
     captured = capsys.readouterr()

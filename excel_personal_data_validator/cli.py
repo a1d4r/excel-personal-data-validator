@@ -25,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--first-name-col", default="B", help="Столбец с именами (по умолчанию: B)")
     parser.add_argument("--patronymic-col", default="C", help="Столбец с отчествами (по умолчанию: C)")
     parser.add_argument("--sheet", default=None, help="Имя листа (по умолчанию: активный лист)")
-    parser.add_argument("--start-row", type=int, default=2, help="Первая строка данных, 1-based (по умолчанию: 2)")
+    parser.add_argument("--start-row", type=int, default=1, help="Первая строка данных, 1-based (по умолчанию: 1)")
     return parser
 
 

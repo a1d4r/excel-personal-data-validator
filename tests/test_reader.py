@@ -7,7 +7,7 @@ from excel_personal_data_validator.reader import get_output_path, read_excel
 
 
 def test_read_excel_basic(sample_xlsx: Path):
-    config = AppConfig(excel_path=sample_xlsx, db_path=Path("unused.db"))
+    config = AppConfig(excel_path=sample_xlsx, db_path=Path("unused.db"), start_row=2)
     rows = read_excel(config)
     assert len(rows) == 4
     assert rows[0].last_name == "Иванов"
@@ -28,7 +28,7 @@ def test_read_excel_skips_empty_rows(tmp_path: Path):
     wb.save(path)
     wb.close()
 
-    config = AppConfig(excel_path=path, db_path=Path("unused.db"))
+    config = AppConfig(excel_path=path, db_path=Path("unused.db"), start_row=2)
     rows = read_excel(config)
     assert len(rows) == 2
 
@@ -43,7 +43,7 @@ def test_read_excel_strips_whitespace(tmp_path: Path):
     wb.save(path)
     wb.close()
 
-    config = AppConfig(excel_path=path, db_path=Path("unused.db"))
+    config = AppConfig(excel_path=path, db_path=Path("unused.db"), start_row=2)
     rows = read_excel(config)
     assert rows[0].last_name == "Иванов"
     assert rows[0].first_name == "Иван"
@@ -61,7 +61,8 @@ def test_read_excel_custom_columns(tmp_path: Path):
     wb.close()
 
     config = AppConfig(
-        excel_path=path, db_path=Path("unused.db"), last_name_column="B", first_name_column="C", patronymic_column="D"
+        excel_path=path, db_path=Path("unused.db"), last_name_column="B", first_name_column="C", patronymic_column="D",
+        start_row=2,
     )
     rows = read_excel(config)
     assert rows[0].last_name == "Иванов"
@@ -82,6 +83,26 @@ def test_read_excel_custom_start_row(tmp_path: Path):
     rows = read_excel(config)
     assert len(rows) == 1
     assert rows[0].row_number == 3
+
+
+def test_read_excel_no_header(tmp_path: Path):
+    """Тест: файл без заголовков, start_row=1 по умолчанию."""
+    path = tmp_path / "no_header.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["Иванов", "Иван", "Иванович"])
+    ws.append(["Петров", "Пётр", "Петрович"])
+    wb.save(path)
+    wb.close()
+
+    config = AppConfig(excel_path=path, db_path=Path("unused.db"))
+    rows = read_excel(config)
+    assert len(rows) == 2
+    assert rows[0].row_number == 1
+    assert rows[0].last_name == "Иванов"
+    assert rows[1].row_number == 2
+    assert rows[1].last_name == "Петров"
 
 
 def test_get_output_path():

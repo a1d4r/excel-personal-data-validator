@@ -12,4 +12,4 @@ class AppConfig(pydantic.BaseModel):
     first_name_column: str = "B"
     patronymic_column: str = "C"
     sheet_name: str | None = None
-    start_row: int = 2
+    start_row: int = 1

@@ -9,7 +9,7 @@ def test_default_config():
     assert config.first_name_column == "B"
     assert config.patronymic_column == "C"
     assert config.sheet_name is None
-    assert config.start_row == 2
+    assert config.start_row == 1
 
 
 def test_custom_config():
