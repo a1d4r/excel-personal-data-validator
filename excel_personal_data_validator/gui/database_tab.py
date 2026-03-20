@@ -137,6 +137,10 @@ class DatabaseTab(QWidget):
         self._current_category = self._category_combo.currentData()
         self._load_data()
 
+    def refresh(self) -> None:
+        """Перезагружает данные из БД (вызывается извне после импорта)."""
+        self._load_data()
+
     def _load_data(self) -> None:
         search = self._search_input.text().strip()
         rows = self._db.list_names(self._current_category, search)
