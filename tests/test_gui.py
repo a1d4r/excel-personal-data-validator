@@ -196,6 +196,22 @@ class TestReviewWidget:
 
         assert "Завершить" in widget._next_btn.text()
 
+    def test_action_buttons_exist_after_navigation(self, qtbot, tmp_path):
+        """Постоянные radio-кнопки не исчезают при переходе между записями."""
+        db, known = _make_db(tmp_path)
+        entries = _make_entries()
+
+        widget = ReviewWidget(entries, known, db, on_complete=lambda _: None, on_cancel=lambda: None)
+        qtbot.addWidget(widget)
+
+        widget._skip_radio.setChecked(True)
+        qtbot.mouseClick(widget._next_btn, Qt.MouseButton.LeftButton)
+
+        # После перехода постоянные кнопки должны быть живы и видны
+        assert not widget._custom_radio.isHidden()
+        assert not widget._add_db_radio.isHidden()
+        assert not widget._skip_radio.isHidden()
+
     def test_cancel(self, qtbot, tmp_path):
         """Кнопка 'Отмена' вызывает on_cancel."""
         db, known = _make_db(tmp_path)
