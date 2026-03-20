@@ -1,8 +1,0 @@
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    volumes:
-      - ./excel_personal_data_validator:/app/excel_personal_data_validator
