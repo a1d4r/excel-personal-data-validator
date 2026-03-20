@@ -5,6 +5,7 @@ from pathlib import Path
 
 from excel_personal_data_validator.config import AppConfig
 from excel_personal_data_validator.db import NameCategory, NameDatabase
+from excel_personal_data_validator.importer import import_names_to_db, print_import_summary
 from excel_personal_data_validator.paths import get_db_path
 from excel_personal_data_validator.reader import get_output_path, read_excel
 from excel_personal_data_validator.ui import ReviewSummary, UserAction, print_summary, run_interactive_review
@@ -17,6 +18,26 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="validator", description="Проверка ФИО в Excel-файле по базе данных известных имён."
     )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # --- validate (по умолчанию) ---
+    validate_parser = subparsers.add_parser("validate", help="Проверить Excel-файл")
+    _add_validate_args(validate_parser)
+
+    # --- import-db ---
+    import_parser = subparsers.add_parser("import-db", help="Импорт данных в БД из текстовых файлов")
+    import_parser.add_argument("--last-names", type=Path, default=None, help="Файл с фамилиями (по одной на строке)")
+    import_parser.add_argument("--first-names", type=Path, default=None, help="Файл с именами (по одному на строке)")
+    import_parser.add_argument("--patronymics", type=Path, default=None, help="Файл с отчествами (по одному на строке)")
+    import_parser.add_argument(
+        "--db-path", type=Path, default=None, help="Путь к БД (по умолчанию: names.db рядом с программой)"
+    )
+
+    return parser
+
+
+def _add_validate_args(parser: argparse.ArgumentParser) -> None:
+    """Добавляет аргументы для команды validate."""
     parser.add_argument("excel_file", type=Path, help="Путь к .xlsx файлу с данными ФИО")
     parser.add_argument(
         "--db-path", type=Path, default=None, help="Путь к БД (по умолчанию: names.db рядом с программой)"
@@ -26,7 +47,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--patronymic-col", default="C", help="Столбец с отчествами (по умолчанию: C)")
     parser.add_argument("--sheet", default=None, help="Имя листа (по умолчанию: активный лист)")
     parser.add_argument("--start-row", type=int, default=2, help="Первая строка данных, 1-based (по умолчанию: 2)")
-    return parser
+
+
+_SUBCOMMANDS = {"validate", "import-db"}
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Разбирает аргументы, поддерживая обратную совместимость (без подкоманды = validate)."""
+    raw = argv if argv is not None else sys.argv[1:]
+
+    # Обратная совместимость: если первый аргумент не является подкомандой, считаем что это validate
+    if raw and raw[0] not in _SUBCOMMANDS and not raw[0].startswith("-"):
+        raw = ["validate", *raw]
+
+    return build_parser().parse_args(raw)
 
 
 def _parse_config(args: argparse.Namespace) -> AppConfig:
@@ -68,9 +102,9 @@ def _category_to_column(category: NameCategory, config: AppConfig) -> str:
     return mapping[category]
 
 
-def main() -> None:
-    """Главная функция приложения."""
-    config = _parse_config(build_parser().parse_args())
+def _run_validate(args: argparse.Namespace) -> None:
+    """Запускает проверку Excel-файла."""
+    config = _parse_config(args)
 
     if not config.db_path.exists():
         print(f"База данных не найдена. Создаётся новая: {config.db_path}")
@@ -106,3 +140,44 @@ def main() -> None:
             output_path_str = str(output_path)
 
         print_summary(summary, output_path_str)
+
+
+def _run_import_db(args: argparse.Namespace) -> None:
+    """Запускает импорт данных в БД из текстовых файлов."""
+    files: dict[NameCategory, Path] = {}
+    file_args = {
+        NameCategory.LAST_NAME: args.last_names,
+        NameCategory.FIRST_NAME: args.first_names,
+        NameCategory.PATRONYMIC: args.patronymics,
+    }
+
+    for category, path in file_args.items():
+        if path is not None:
+            if not path.exists():
+                print(f"Ошибка: файл '{path}' не найден")
+                sys.exit(1)
+            files[category] = path
+
+    if not files:
+        print("Ошибка: укажите хотя бы один файл (--last-names, --first-names, --patronymics)")
+        sys.exit(1)
+
+    db_path = args.db_path or get_db_path()
+
+    if not db_path.exists():
+        print(f"База данных не найдена. Создаётся новая: {db_path}")
+
+    with NameDatabase(db_path) as db:
+        db.initialize()
+        counts = import_names_to_db(db, files)
+        print_import_summary(counts)
+
+
+def main() -> None:
+    """Главная функция приложения."""
+    args = _parse_args()
+
+    if args.command == "import-db":
+        _run_import_db(args)
+    else:
+        _run_validate(args)
