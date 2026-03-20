@@ -2,8 +2,10 @@ from pathlib import Path
 
 from openpyxl import Workbook
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QMessageBox
 
 from excel_personal_data_validator.db import NameCategory, NameDatabase
+from excel_personal_data_validator.gui.database_tab import DatabaseTab
 from excel_personal_data_validator.gui.import_tab import ImportTab
 from excel_personal_data_validator.gui.review_widget import ReviewWidget
 from excel_personal_data_validator.gui.validate_tab import ValidateTab
@@ -334,3 +336,137 @@ class TestImportTab:
 
         widget._run_import()
         assert len(warned) == 1
+
+
+# ============================================================
+# DatabaseTab tests
+# ============================================================
+
+
+class TestDatabaseTab:
+    def test_initial_load(self, qtbot, tmp_path):
+        """Таблица загружает данные при создании."""
+        db, known = _make_db(tmp_path)
+        changed = []
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: changed.append(True))
+        qtbot.addWidget(widget)
+
+        # По умолчанию выбрана категория LAST_NAME
+        assert widget._model.rowCount() == len(db.list_names(NameCategory.LAST_NAME))
+        assert "Фамилия" in widget._count_label.text()
+
+    def test_category_switch(self, qtbot, tmp_path):
+        """Переключение категории перезагружает данные."""
+        db, known = _make_db(tmp_path)
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: None)
+        qtbot.addWidget(widget)
+
+        # Переключаемся на «Имя» (индекс 1)
+        widget._category_combo.setCurrentIndex(1)
+        assert widget._model.rowCount() == len(db.list_names(NameCategory.FIRST_NAME))
+        assert "Имя" in widget._count_label.text()
+
+    def test_search_filters_data(self, qtbot, tmp_path):
+        """Поиск фильтрует записи по подстроке."""
+        db, known = _make_db(tmp_path)
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: None)
+        qtbot.addWidget(widget)
+
+        total_before = widget._model.rowCount()
+        widget._search_input.setText("Иван")
+        filtered = widget._model.rowCount()
+        assert filtered < total_before
+        assert filtered > 0
+
+    def test_add_entry(self, qtbot, tmp_path, monkeypatch):
+        """Добавление записи через диалог."""
+        db, known = _make_db(tmp_path)
+        changed = []
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: changed.append(True))
+        qtbot.addWidget(widget)
+
+        count_before = widget._model.rowCount()
+        monkeypatch.setattr("PySide6.QtWidgets.QInputDialog.getText", lambda *args, **kwargs: ("Козлов", True))
+
+        widget._add_entry()
+
+        assert widget._model.rowCount() == count_before + 1
+        assert "козлов" in known[NameCategory.LAST_NAME]
+        assert len(changed) == 1
+
+    def test_edit_entry(self, qtbot, tmp_path, monkeypatch):
+        """Редактирование выбранной записи."""
+        db, known = _make_db(tmp_path)
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: None)
+        qtbot.addWidget(widget)
+
+        # Выбираем первую строку
+        widget._table.selectRow(0)
+        old_value = widget._model.row_at(0)[1]
+
+        monkeypatch.setattr("PySide6.QtWidgets.QInputDialog.getText", lambda *args, **kwargs: ("Новиков", True))
+
+        widget._edit_entry()
+
+        # Проверяем что старое значение заменено
+        assert "новиков" in known[NameCategory.LAST_NAME]
+        assert old_value.lower() not in known[NameCategory.LAST_NAME]
+
+    def test_delete_entry(self, qtbot, tmp_path, monkeypatch):
+        """Удаление записи с подтверждением."""
+        db, known = _make_db(tmp_path)
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: None)
+        qtbot.addWidget(widget)
+
+        count_before = widget._model.rowCount()
+        widget._table.selectRow(0)
+        deleted_value = widget._model.row_at(0)[1]
+
+        monkeypatch.setattr(
+            "PySide6.QtWidgets.QMessageBox.question", lambda *args, **kwargs: QMessageBox.StandardButton.Yes
+        )
+
+        widget._delete_entry()
+
+        assert widget._model.rowCount() == count_before - 1
+        assert deleted_value.lower() not in known[NameCategory.LAST_NAME]
+
+    def test_delete_cancelled(self, qtbot, tmp_path, monkeypatch):
+        """Отмена удаления не изменяет данные."""
+        db, known = _make_db(tmp_path)
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: None)
+        qtbot.addWidget(widget)
+
+        count_before = widget._model.rowCount()
+        widget._table.selectRow(0)
+
+        monkeypatch.setattr(
+            "PySide6.QtWidgets.QMessageBox.question", lambda *args, **kwargs: QMessageBox.StandardButton.No
+        )
+
+        widget._delete_entry()
+
+        assert widget._model.rowCount() == count_before
+
+    def test_no_selection_warns(self, qtbot, tmp_path, monkeypatch):
+        """Попытка редактирования/удаления без выбора показывает предупреждение."""
+        db, known = _make_db(tmp_path)
+        warned = []
+
+        widget = DatabaseTab(db=db, known_names=known, on_data_changed=lambda: None)
+        qtbot.addWidget(widget)
+
+        monkeypatch.setattr("PySide6.QtWidgets.QMessageBox.warning", lambda *args, **kwargs: warned.append(True))
+
+        widget._edit_entry()
+        assert len(warned) == 1
+
+        widget._delete_entry()
+        assert len(warned) == 2

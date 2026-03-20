@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -11,13 +11,54 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
 
 from excel_personal_data_validator.db import CATEGORY_LABELS, NameCategory, NameDatabase
+
+_HEADERS = ["ID", "Значение"]
+_DEFAULT_PARENT = QModelIndex()
+
+
+class _NameTableModel(QAbstractTableModel):
+    """Модель данных для таблицы имён. Виртуализирует отрисовку через QTableView."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._rows: list[tuple[int, str]] = []
+
+    def set_data(self, rows: list[tuple[int, str]]) -> None:
+        self.beginResetModel()
+        self._rows = rows
+        self.endResetModel()
+
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = _DEFAULT_PARENT) -> int:  # noqa: ARG002
+        return len(self._rows)
+
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = _DEFAULT_PARENT) -> int:  # noqa: ARG002
+        return 2
+
+    def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> object:
+        if not index.isValid():
+            return None
+        row_id, value = self._rows[index.row()]
+        if role == Qt.ItemDataRole.DisplayRole:
+            return str(row_id) if index.column() == 0 else value
+        if role == Qt.ItemDataRole.TextAlignmentRole and index.column() == 0:
+            return Qt.AlignmentFlag.AlignCenter
+        if role == Qt.ItemDataRole.UserRole:
+            return row_id
+        return None
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> object:
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+            return _HEADERS[section]
+        return None
+
+    def row_at(self, index: int) -> tuple[int, str]:
+        return self._rows[index]
 
 
 class DatabaseTab(QWidget):
@@ -31,6 +72,7 @@ class DatabaseTab(QWidget):
         self._known_names = known_names
         self._on_data_changed = on_data_changed
         self._current_category = NameCategory.LAST_NAME
+        self._model = _NameTableModel()
         self._setup_ui()
         self._load_data()
 
@@ -57,15 +99,16 @@ class DatabaseTab(QWidget):
 
         layout.addLayout(top_row)
 
-        # Таблица
-        self._table = QTableWidget()
-        self._table.setColumnCount(2)
-        self._table.setHorizontalHeaderLabels(["ID", "Значение"])
-        self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        # Таблица (QTableView + модель для виртуализации)
+        self._table = QTableView()
+        self._table.setModel(self._model)
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.verticalHeader().setVisible(False)
+        header = self._table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         layout.addWidget(self._table, stretch=1)
 
         # Нижняя панель: кнопки
@@ -97,31 +140,17 @@ class DatabaseTab(QWidget):
     def _load_data(self) -> None:
         search = self._search_input.text().strip()
         rows = self._db.list_names(self._current_category, search)
-
-        self._table.setRowCount(len(rows))
-        for i, (row_id, value) in enumerate(rows):
-            id_item = QTableWidgetItem(str(row_id))
-            id_item.setData(Qt.ItemDataRole.UserRole, row_id)
-            id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._table.setItem(i, 0, id_item)
-            self._table.setItem(i, 1, QTableWidgetItem(value))
+        self._model.set_data(rows)
 
         label = CATEGORY_LABELS[self._current_category]
         self._count_label.setText(f"{label}: {len(rows)} записей")
 
     def _selected_row(self) -> tuple[int, str] | None:
-        items = self._table.selectedItems()
-        if not items:
+        indexes = self._table.selectionModel().selectedRows()
+        if not indexes:
             QMessageBox.warning(self, "Внимание", "Выберите запись в таблице.")
             return None
-        row = items[0].row()
-        id_item = self._table.item(row, 0)
-        value_item = self._table.item(row, 1)
-        if id_item is None or value_item is None:
-            return None
-        row_id: int = id_item.data(Qt.ItemDataRole.UserRole)
-        value = value_item.text()
-        return row_id, value
+        return self._model.row_at(indexes[0].row())
 
     def _sync_known_names(self) -> None:
         """Пересинхронизирует in-memory кеш с БД."""
