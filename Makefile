@@ -89,12 +89,6 @@ lint: check-dependencies check-codestyle static-lint
 update:
 	uv lock --upgrade
 
-# Docker compose
-
-.PHONY: docker-up
-docker-up:
-	docker compose up
-
 #* Cleaning
 .PHONY: pycache-remove
 pycache-remove:
