@@ -5,7 +5,7 @@ def test_find_similar_basic():
     known = {"иванов", "иванова", "петров", "сидоров"}
     result = find_similar("ивано", known)
     assert len(result) > 0
-    assert "иванов" in result
+    assert "Иванов" in result
 
 
 def test_find_similar_no_match():
@@ -17,7 +17,7 @@ def test_find_similar_no_match():
 def test_find_similar_exact_match():
     known = {"иванов", "петров"}
     result = find_similar("иванов", known)
-    assert "иванов" in result
+    assert "Иванов" in result
 
 
 def test_find_similar_max_results():
